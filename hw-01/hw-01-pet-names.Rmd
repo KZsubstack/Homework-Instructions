@@ -398,7 +398,12 @@ ggplot(comb_name_props, aes(x = cat_prop, y = dog_prop)) +
 ```
 
 a.  What names are more common for cats than dogs? The ones above the line or the ones below the line?
+
+The names below the line are more common for cats than dogs. The names above the line are more common for dogs.
+
 b.  Is the relationship between the two variables (proportion of cats with a given name and proportion of dogs with a given name) positive or negative? What does this mean in context of the data?
+
+Yes the relationship between the two variables have a positive relationship this means, in the context of the data, names that have a higher proportion among dogs also tend to have a higher proportion among cats. So if name is popular with cats it will likely be popular with dogs too or vice versa.
 
 *After completing this exercise:*
 
