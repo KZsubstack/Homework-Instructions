@@ -3,15 +3,15 @@ title: "HW 01 - Pet names"
 author: "Kaden Zhu"
 subtitle: "Meet the toolkit"
 output: 
-  tufte::tufte_html:
-    css: ../lab.css
-    tufte_variant: "envisioned"
-    highlight: pygments
   tufte::tufte_handout:
     latex_engine: xelatex
     highlight: pygments
     keep_tex: true
     citation_package: natbib
+  tufte::tufte_html:
+    css: ../lab.css
+    tufte_variant: "envisioned"
+    highlight: pygments
 link-citations: true
 ---
 
@@ -339,7 +339,7 @@ Which option groups all the cats together and all the dogs together, with names 
 
 arrange(species, desc(n)) groups the different species together in their own sections, with their names ranked by frequecy within each species adding the desc(n) makes it so it orders from most to least, which is what we want to see the top name within each species.
 
-```{r species-names-top5, eval=TRUE}
+```{r species-names-top5 question duplicate, eval=TRUE}
 seattlepets %>% 
   group_by(species) %>%
   count(animal_name, sort = TRUE) %>% 
