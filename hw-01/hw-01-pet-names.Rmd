@@ -337,6 +337,16 @@ Based on the previous output we can easily identify the most common cat and dog 
 
 Which option groups all the cats together and all the dogs together, with names ranked by frequency within each species?
 
+arrange(species, desc(n)) groups the different species together in their own sections, with their names ranked by frequecy within each species adding the desc(n) makes it so it orders from most to least, which is what we want to see the top name within each species.
+
+```{r species-names-top5, eval=TRUE}
+seattlepets %>% 
+  group_by(species) %>%
+  count(animal_name, sort = TRUE) %>% 
+  slice_max(n, n = 5) %>% 
+  arrange(species, desc(n))
+```
+
 *After completing this exercise:*
 
 🧶 Knit → ✅ Commit with message `"Completed Exercise 4` → ⬆️ Push
