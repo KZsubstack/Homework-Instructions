@@ -290,6 +290,13 @@ seattlepets %>%
 
 *Write your answer in your R Markdown document under Exercise 3. In this exercise you will not only provide a written answer but also include some code and output. You should insert the code in the code chunk provided for you, knit the document to see the output, and then write your narrative for the answer based on the output of this function, and knit again to see your narrative, code, and output in the resulting document.* 
 
+We ignore NA because that means the pet name is missing, that missing name could be anything it's not a real name top three names are Lucy (439), Charlie (387), and Luna (355) Code is below:
+
+```{r countrepeat, include = TRUE, eval=TRUE}
+seattlepets %>%
+  count(animal_name, sort = TRUE)
+```
+
 *After completing this exercise:*
 
 🧶 Knit → ✅ Commit with message `"Completed Exercise 3"` → ⬆️ Push
