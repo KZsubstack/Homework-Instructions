@@ -271,6 +271,8 @@ There are 52,519 pets included in the dataset.
 
 2.  Again, according to the data dictionary, how many variables do we have for each pet? Write your answer in the R Markdown document under Exercise 2.
 
+There are 7 variables for each pet the license_issue_date, license_number, animal_name, species, primary_breed, secondary_breed, and zip_code
+
 *After completing this exercise:*
 
 🧶 Knit → ✅ Commit with message `"Completed Exercise 2"` → ⬆️ Push
