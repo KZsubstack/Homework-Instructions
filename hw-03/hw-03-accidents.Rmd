@@ -1,22 +1,22 @@
 ---
 title: "HW 03 - Road traffic accidents"
-author: "[Your Name]"
+author: "Kaden Zhu"
 output: 
-  tufte::tufte_html:
-    css: ../lab.css
-    tufte_variant: "envisioned"
-    highlight: pygments
   tufte::tufte_handout:
     latex_engine: xelatex
     highlight: pygments
     keep_tex: true
     citation_package: natbib
+  tufte::tufte_html:
+    css: ../lab.css
+    tufte_variant: "envisioned"
+    highlight: pygments
 link-citations: true
 ---
 
 ```{r include = FALSE}
 knitr::opts_chunk$set(
-  eval = FALSE,
+  eval = TRUE,
   out.width = "80%",
   fig.asp = 0.618,
   fig.width = 10,
@@ -76,8 +76,11 @@ The data can be found in the **dsbox** package, and it's called `accidents`. Sin
 
 1.  How many observations (rows) does the dataset have? Instead of hard coding the number in your answer, use inline code.
 
+there are `r nrow(accidents)` in the accidents dataset
 
 2.  Run `View(accidents)` in your Console to view the data in the data viewer. What does each row in the dataset represent?
+
+One row represents one recorded traffic accident, identified by a unique accident ID, and the columns describe characteristics of that accident.
 
 🧶 Knit → ✅ Commit with message `"Completed Exercises 1-2"` → ⬆️ Push
 
@@ -94,12 +97,12 @@ Your plot should include:
 
 **Hint:** Use `mutate()` with `if_else()`. The condition should check if `day_of_week` is in the vector `c("Saturday", "Sunday")`
 
-```{r create-day-type, eval = FALSE}
-accidents %
+```{r create-day-type, eval = TRUE}
+accidents_with_day_type <- accidents %>%
   mutate(day_of_week_type = if_else(
-    ___ %in% c(___, ___), 
-    "___", 
-    "___"
+    day_of_week %in% c("Saturday", "Sunday"), 
+    "Weekend", 
+    "Weekday"
   ))
 ```
 
@@ -112,18 +115,23 @@ accidents %
 - Use `facet_wrap()` to create separate plots for weekday vs. weekend
 - Add `theme_minimal()` and appropriate labels
 
-```{r accident-density-plot, eval = FALSE}
-ggplot(data = ___, aes(x = ___, fill = ___)) +
-  geom_density(alpha = ___) +
-  facet_wrap(~___, ncol = ___) +
-  ___ +
+```{r accident-density-plot, eval = TRUE}
+ggplot(data = accidents_with_day_type, aes(x = time, fill = severity)) +
+  geom_density(alpha = 0.5) +
+  facet_wrap(~ day_of_week_type) +
+  theme_minimal() +
   labs(
-    title = "___",
-    subtitle = "___",
-    x = "___",
-    y = "___",
-    fill = "___"
+    title = "Distribution of accidents throughout the day",
+    subtitle = "Comparing weekdays and weekends by accident severity",
+    x = "Time of day",
+    y = "Density",
+    fill = "Severity"
+  ) +
+  scale_x_time(
+    breaks = hms::hms(hours = c(0, 4, 8, 12, 16, 20, 24)),
+    labels = scales::label_time(format = "%H:%M")
   )
+
 ```
 
 **Interpretation (2-3 sentences):** Describe what patterns you observe:
@@ -132,6 +140,7 @@ ggplot(data = ___, aes(x = ___, fill = ___)) +
 - How does the severity of accidents vary by time of day?
 - Are there any notable differences between weekdays and weekends?
 
+Accidents during weekdays appear to cluster more around the morning and late afternoon, which likely reflects commuter traffic patterns. On weekends, accidents seem more concentrated later in the day and into the evening rather than during early morning hours. Slight accidents are the most common across nearly all times of day, while fatal and serious accidents occur less often but appear more noticeable at certain times, especially later in the day.
 
 *After completing Exercise 3:*
 
@@ -154,16 +163,30 @@ ggplot(data = ___, aes(x = ___, fill = ___)) +
 - Do certain vehicle types have more accidents in specific conditions?
 
 **Your visualization:**
-```{r custom-visualization, eval = FALSE}
-# Your code here
+```{r custom-visualization, eval = TRUE}
+ggplot(accidents, aes(x = weather, fill = severity)) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ light) +
+  theme_minimal() +
+  labs(
+    title = "Accident severity by weather and lighting conditions",
+    x = "Weather conditions",
+    y = "Proportion of accidents",
+    fill = "Severity"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 **What question does your visualization answer?**
-
+How does accident severity vary across weather conditions and lighting conditions?
 
 **What variables were used:** 
 
+weather, light, and severity
+
 **Interpretation (3-4 sentences):** What patterns or insights does your visualization reveal?
+Most accidents across all weather and lighting conditions are classified as slight, shown by the large blue portions in nearly every bar. Serious accidents make up a larger share in some darker lighting conditions, especially when lights are lit or when there is no lighting, suggesting that reduced visibility may be associated with more severe crashes. Fatal accidents appear much less common overall, with only small red portions in a few categories. The plot shows that lighting conditions may have a stronger visible relationship with accident severity than weather conditions in this dataset.
+
 
 *After completing Exercise 4:*
 
