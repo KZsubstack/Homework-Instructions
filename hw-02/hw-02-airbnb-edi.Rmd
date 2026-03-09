@@ -1,22 +1,22 @@
 ---
 title: "HW 02 - Airbnb listings in Edinburgh"
-author: "[Your Name]"
+author: "Kaden Zhu"
 output: 
-  tufte::tufte_html:
-    css: ../lab.css
-    tufte_variant: "envisioned"
-    highlight: pygments
   tufte::tufte_handout:
     latex_engine: xelatex
     highlight: pygments
     keep_tex: true
     citation_package: natbib
+  tufte::tufte_html:
+    css: ../lab.css
+    tufte_variant: "envisioned"
+    highlight: pygments
 link-citations: true
 ---
 
 ```{r include = FALSE}
 knitr::opts_chunk$set(
-  eval = FALSE,
+  eval = TRUE,
   out.width = "80%",
   fig.asp = 0.618,
   fig.width = 6
@@ -70,7 +70,7 @@ library(dsbox)
 
 **Note:** If you get an error that dsbox is not installed, run this in your Console first:
 
-```{r eval = FALSE}
+```{r eval = TRUE, force = TRUE}
 install.packages("devtools")
 devtools::install_github("tidyverse/dsbox")
 ```
@@ -81,7 +81,8 @@ The data can be found in the **dsbox** package, and it's called `edibnb`. Since 
 
 You can view the dataset as a spreadsheet using the `View()` function. Note that you should not put this function in your R Markdown document, but instead type it directly in the Console, as it pops open a new window (and the concept of popping open a window in a static document doesn't really make sense...). When you run this in the console, you'll see the following **data viewer** window pop up.
 
-```{r view-data}
+```r
+```{r view-data, eval = FALSE}
 View(edibnb)
 ```
 
@@ -95,10 +96,14 @@ You can find out more about the dataset by inspecting its documentation, which y
 
 1.  How many observations (rows) does the dataset have? Instead of hard coding the number in your answer, use inline code.
 
+The dataset has `r nrow(edibnb)` observations (rows).
+
 **Hint:** In your answer, type a backtick, then r, then space, then `nrow(edibnb)`, then close with another backtick. When you knit, this will show the actual number instead of the code.
 
 
 2.  Run `View(edibnb)` in your Console to view the data in the data viewer. What does each row in the dataset represent?
+
+Each row represents one Airbnb listing (one property/room being offered), with its details like neighborhood, price, availability, how many bed/bath etc.
 
 *After completing Exercises 1-2:*
 
@@ -116,7 +121,8 @@ You can find descriptions of each of the variables in the help file for the data
 --- 
 
 Before you create your first plot, let's understand the structure of ggplot2 code. Here's the basic template:
-```{r example-plot}
+```r
+```{r example-plot, eval = FALSE}
 ggplot(data = dataset_name, mapping = aes(x = variable)) +
   geom_histogram(binwidth = 50) +
   facet_wrap(~grouping_variable)
@@ -136,19 +142,26 @@ ggplot(data = dataset_name, mapping = aes(x = variable)) +
   a) Experiment with binwidth
 
 Try binwidths of 25, 50, and 100. Which gives you the most useful view of the data?
-```{r price-hist-experiments}
+```{r price-hist-experiments, eval = TRUE, warning = FALSE}
 # Try binwidth = 25
 ggplot(data = edibnb, mapping = aes(x = price)) +
   geom_histogram(binwidth = 25) +
   facet_wrap(~neighbourhood)
 
 # Try binwidth = 50
-
+ggplot(data = edibnb, mapping = aes(x = price)) +
+  geom_histogram(binwidth = 50) +
+  facet_wrap(~neighbourhood)
 
 # Try binwidth = 100
+ggplot(data = edibnb, mapping = aes(x = price)) +
+  geom_histogram(binwidth = 100) +
+  facet_wrap(~neighbourhood)
 ```
 
 *Which binwidth did you choose and why?*
+
+I chose binwidth = 50 because a binwidth of 25 makes the histograms look too crowded and noisy, while a binwidth of 100 hides too much of the variation in price. A binwidth of 50 gives a better balance between detail and readability.
 
  b) Experiment with facet layout*
 
@@ -160,6 +173,8 @@ Try these three options:
 
 *Which layout did you choose and why?*
 
+I chose facet_wrap(~neighbourhood) because the default wrapped grid makes the neighborhoods easier to compare at once without making the figure too tall or too wide. The one-column version is harder to scan, and the one-row version becomes too stretched horizontally.
+
  c) Create your final visualization
 
 ```{marginfigure}
@@ -167,8 +182,10 @@ Try these three options:
 ```
 
 Use your chosen binwidth and layout:
-```{r final-price-histogram, eval = FALSE}
-# Your final code here
+```{r final-price-histogram, eval = TRUE, warning = FALSE}
+ggplot(data = edibnb, mapping = aes(x = price)) +
+  geom_histogram(binwidth = 50) +
+  facet_wrap(~neighbourhood)
 ```
 
 *After completing Exercise 3:*
@@ -179,12 +196,12 @@ Use your chosen binwidth and layout:
 
   a) Identify the top 5 neighborhoods by median price. Complete the pipeline to find neighborhoods with the highest median prices:
   
-```{r top-5-neighborhoods, eval = FALSE}
-top_5 %
-  group_by(___) %>%
-  summarise(median_price = median(___, na.rm = TRUE)) %>%
-  arrange(desc(___)) %>%
-  slice_max(___, n = ___)
+```{r top-5-neighborhoods, eval = TRUE}
+top_5 <- edibnb %>%
+  group_by(neighbourhood) %>%
+  summarise(median_price = median(price, na.rm = TRUE)) %>%
+  arrange(desc(median_price)) %>%
+  slice_max(median_price, n = 5)
 
 top_5
 ```
@@ -192,34 +209,34 @@ top_5
   b) Create ridge plots for these neighborhoods. 
   
   Ridge plots show distributions stacked vertically, making them easy to compare.
-```{r ridge-plots, message = FALSE, eval = FALSE}
+```{r ridge-plots, message = FALSE, eval = TRUE}
 library(ggridges)
 
 # Filter for top 5 neighborhoods and create ridge plot
 edibnb %>%
-  filter(neighbourhood %in% ___$___) %>%
-  ggplot(aes(x = ___, y = ___)) +
+  filter(neighbourhood %in% top_5$neighbourhood) %>%
+  ggplot(aes(x = price, y = neighbourhood)) +
   geom_density_ridges() +
   labs(
-    x = "___",
-    y = "___",
-    title = "___"
+    x = "Price",
+    y = "Neighbourhood",
+    title = "Price distributions for the top 5 neighborhoods by median price"
   )
 ```
 
   c) Calculate the summary statistics.
   
-```{r summary-stats, eval = FALSE}
+```{r summary-stats, eval = TRUE}
 edibnb %>%
-  filter(neighbourhood %in% ___$___) %>%
-  group_by(___) %>%
+  filter(neighbourhood %in% top_5$neighbourhood) %>%
+  group_by(neighbourhood) %>%
   summarise(
-    min = min(___, na.rm = TRUE),
-    mean = mean(___, na.rm = TRUE),
-    median = ___,
-    sd = ___,
-    IQR = ___,
-    max = ___
+    min = min(price, na.rm = TRUE),
+    mean = mean(price, na.rm = TRUE),
+    median = median(price, na.rm = TRUE),
+    sd = sd(price, na.rm = TRUE),
+    IQR = IQR(price, na.rm = TRUE),
+    max = max(price, na.rm = TRUE)
   )
 ```
 
@@ -228,6 +245,8 @@ Using both the visualization and summary statistics, describe the distribution o
 - Which neighborhood has the highest typical prices?
 - Which has the most variation (spread) in prices?
 - Are there any notable patterns or outliers?
+
+The neighborhood with the highest typical prices is New Town, since it has the highest median price at 100. In terms of variation, Old Town has the largest standard deviation at about 109.57, while Marchmont has the largest IQR at 90, so both show a wide spread in prices. Overall, the price distributions appear to be right-skewed, since the maximum prices are much higher than the medians in every neighborhood, which suggests a few very expensive listings are pulling the upper tail upward.
 
 *After completing Exercise 4:*
 
@@ -243,8 +262,15 @@ Using both the visualization and summary statistics, describe the distribution o
 - Ridge plots: `geom_density_ridges()` (requires `library(ggridges)`)
 
 
-```{r review-scores-viz, eval = FALSE}
-# Your code here
+```{r review-scores-viz, eval = TRUE}
+ggplot(edibnb, aes(x = neighbourhood, y = review_scores_rating)) +
+  geom_boxplot() +
+  labs(
+    x = "Neighbourhood",
+    y = "Review score rating",
+    title = "Distribution of Airbnb review scores across neighborhoods"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 *Interpretation (2-3 sentences):*
@@ -252,6 +278,9 @@ Using both the visualization and summary statistics, describe the distribution o
 - How do Airbnb guests rate properties in general (are ratings generally high, low, or varied)?
 - How do the neighborhoods compare to each other?
 - Are there any neighborhoods that stand out as having particularly high or low ratings?
+
+
+Airbnb guests generally give properties high review scores, since the medians for most neighborhoods are clustered in the mid-to-high 90s and the boxes are concentrated near the top of the scale. The neighborhoods look fairly similar overall, although a few have slightly wider spreads and more low-score outliers than others. No neighborhood stands out as dramatically lower-rated, but places like Leith, Old Town, and NA appear to have more unusually low ratings compared with the rest.
 
 *After completing Exercise 5:*
 
@@ -281,7 +310,7 @@ Using both the visualization and summary statistics, describe the distribution o
 
 **General issues:**
 
-- **Plot not showing** → Make sure the code chunk doesn't have `eval = FALSE`
+- **Plot not showing** → Make sure the code chunk doesn't have `eval = TRUE`
 - **Changes not showing after knitting** → Save your file first (Ctrl+S or Cmd+S)
 
 ---
