@@ -1,22 +1,22 @@
 ---
 title: "HW 04 - What should I major in?"
-author: "[Your Name]"
+author: "Kaden Zhu"
 output: 
-  tufte::tufte_html:
-    css: ../lab.css
-    tufte_variant: "envisioned"
-    highlight: pygments
   tufte::tufte_handout:
     latex_engine: xelatex
     highlight: pygments
     keep_tex: true
     citation_package: natbib
+  tufte::tufte_html:
+    css: ../lab.css
+    tufte_variant: "envisioned"
+    highlight: pygments
 link-citations: true
 ---
 
 ```{r include = FALSE}
 knitr::opts_chunk$set(
-  eval = FALSE,
+  eval = TRUE,
   out.width = "80%",
   fig.asp = 0.618,
   fig.width = 10,
@@ -146,11 +146,11 @@ college_recent_grads %>%
 
 **Hint:** The variable for proportion of women is `sharewomen`, and total number of people is `total`.
 
-```{r top-women-majors, eval = FALSE}
+```{r top-women-majors, eval = TRUE}
 college_recent_grads %>%
-  arrange(desc(___)) %>%
-  select(___, ___, ___) %>%
-  top_n(___)
+  arrange(desc(sharewomen)) %>%
+  select(major, total, sharewomen) %>%
+  top_n(3)
 ```
 
 ## How do the distributions of median income compare across major categories?
@@ -163,6 +163,8 @@ There are three types of incomes reported in this data frame: `p25th`, `median`,
 
 2.  Why do we often choose the median, rather than the mean, to describe the typical income of a group of people?
 
+we choose the median instead of the mean to describe the typical income of a group of people because the median is more resistant to skewed data or outliers giving a better representation.
+
 The question we want to answer "How do the distributions of median income compare across major categories?". We need to do a few things to answer this question: First, we need to group the data by `major_category`. Then, we need a way to summarize the distributions of median income within these groups. This decision will depend on the shapes of these distributions. So first, we need to visualize the data.
 
 We use the `ggplot()` function to do this. The first argument is the data frame, and the next argument gives the mapping of the variables of the data to the `aes`thetic elements of the plot.
@@ -171,7 +173,7 @@ Let's start simple and take a look at the distribution of all median incomes, wi
 
 ```{r fig,height=2}
 ggplot(data = college_recent_grads, mapping = aes(x = median)) +
-  geom_histogram()
+  geom_histogram(binwidth = 5000)
 ```
 
 Along with the plot, we get a message:
@@ -184,7 +186,7 @@ This is telling us that we might want to reconsider the binwidth we chose for ou
 
 3.  Try binwidths of \$1000 and \$5000 and choose one. Explain your reasoning for your choice. Note that the binwidth is an argument for the `geom_histogram` function. So to specify a binwidth of \$1000, you would use `geom_histogram(binwidth = 1000)`.
 
-```{r binwidth-1000, eval = FALSE}
+```{r binwidth-1000, eval = TRUE}
 # Try binwidth = 1000
 ```
 ```{r binwidth-5000}
@@ -204,14 +206,16 @@ college_recent_grads %>%
 
 4.  Based on the shape of the histogram you created in the previous exercise, determine which of these summary statistics is useful for describing the distribution. Write up your description (remember shape, center, spread, any unusual observations) and include the summary statistic output as well.
 
+Based on the shape of the histogram, the summary statistics most useful for describing the distribution are the median and the quartiles (IQR). While the mean can help us see which way the shape is skewed by comparing it to the median, it is easily pulled away by extreme values. In this case, because the mean ($40,151$) is significantly higher than the median ($36,000$), it shows that the distribution is actually right-skewed, meaning it leans more toward the minimum values with a long tail stretching toward the maximum values.The standard deviation also helps describe the spread of the distribution; a larger standard deviation indicates that the data is more spread out, while a smaller one would mean the values are more clustered around the center. Finally, the quartiles show us that the middle $50\%$ of majors earn between $\$33,000$ (Q1) and $\$45,000$ (Q3). This concentration at the lower end, combined with the unusual observation of an outlier at $\$110,000$, confirms that the distribution is skewed to the right.
+
 5.  Plot the distribution of `median` income using a histogram, faceted by `major_category`. Use the `binwidth` you chose in the earlier exercise.
 
 **Hint:** Add `facet_wrap(~major_category)` to your ggplot code.
 
-```{r income-by-category, eval = FALSE}
-ggplot(data = ___, mapping = aes(x = ___)) +
-  geom_histogram(binwidth = ___) +
-  facet_wrap(~___)
+```{r income-by-category, eval = TRUE}
+ggplot(data = college_recent_grads, mapping = aes(x = median)) +
+  geom_histogram(binwidth = 5000) +
+  facet_wrap(~major_category)
 ```
 
 Now that we've seen the shapes of the distributions of median incomes for each major category, we should have a better idea for which summary statistic to use to quantify the typical median income.
@@ -226,15 +230,16 @@ Fill-in the blanks in the code below and change eval = TRUE to test your output.
 ```{r eval=FALSE}
 college_recent_grads %>%
   group_by(major_category) %>%
-  summarise(___ = ___(median)) %>%
-  arrange(___)
+  summarise(typical_median_income = median(median)) %>%
+  arrange(typical_median_income)
 ```
 
 7.  Which major category is the least popular in this sample? To answer this question we use a new function called `count`, which first groups the data and then counts the number of observations in each category (see below). Add to the pipeline appropriately to arrange the results so that the major with the lowest observations is on top.
 
 ```{r}
 college_recent_grads %>%
-  count(major_category)
+  count(major_category) %>%
+  arrange(n)
 ```
 
 🧶 Knit → ✅ Commit with message `"Completed Exercise 1-7"` → ⬆️ Push
@@ -293,11 +298,11 @@ college_recent_grads %>%
 ```{r stem-below-median, eval=FALSE}
 college_recent_grads %>%
   filter(
-    ___ == "___",
-    ___ <= ___
+    major_type == "stem",
+    median <= 36000
   ) %>%
-  select(___, ___, ___, ___) %>%
-  arrange(desc(___))
+  select(major, median, p25th, p75th) %>%
+  arrange(desc(median))
 ```
 
 
@@ -306,14 +311,14 @@ college_recent_grads %>%
 
 9.  Create a scatterplot of median income vs. proportion of women in that major, coloured by whether the major is in a STEM field or not. Describe the association between these three variables.
 
-```{r women-income-stem, eval = FALSE}
-ggplot(data = college_recent_grads, aes(x = ___, y = ___, color = ___)) +
+```{r women-income-stem, eval = TRUE}
+ggplot(data = college_recent_grads, aes(x = median, y = sharewomen, color = major_type)) +
   geom_point() +
   labs(
-    x = "___",
-    y = "___",
-    color = "___",
-    title = "___"
+    x = "median income",
+    y = "proportion of women",
+    color = "in Stem or not",
+    title = "median income vs. proportion of women in major"
   )
 ```
 
@@ -328,14 +333,23 @@ ggplot(data = college_recent_grads, aes(x = ___, y = ___, color = ___)) +
 - Do majors with higher proportions of full-time workers have higher median incomes?
 
 **Your research question:** 
-
+How does the proportion of women vary across major categories?
 
 **Your analysis (code and visualization/summary statistics):**
-```{r custom-analysis}
-# Your code here
+```{r custom-analysis, eval = TRUE}
+ggplot(data = college_recent_grads, 
+       aes(x = sharewomen, y = reorder(major_category, sharewomen))) +
+  geom_boxplot(fill = "green", color = "black") +
+  labs(
+    x = "Proportion of Women",
+    y = "Major Category",
+    title = "Distribution of Women in Majors by Category",
+  )
 ```
 
 **Your findings (3-4 sentences):**
+Health, Education, interdisciplinary and Psychology & Social Work have the largest proportion of women with each of these majors having over a 75% proportion of Women. Engineering and industrial arts & Consumer services have the least proportion of women on average, Industrial Arts & Consumer Services and Agriculture & Natural Resources have much "longer" boxes so these majors can be male or female dominated. Biology & Life Science, communications & Journalism, and Psychology & Social work have the tightest ranges but they all sit above 50%.
+
 
 🧶 Knit → ✅ Commit with message `"Completed Exercise 8-10"` → ⬆️ Push
 
@@ -363,7 +377,7 @@ ggplot(data = college_recent_grads, aes(x = ___, y = ___, color = ___)) +
 
 **General issues:**
 
-- **Code chunk not running** → Remove `eval = FALSE` from chunk options
+- **Code chunk not running** → Remove `eval = TRUE` from chunk options
 - **Summary statistics returning NA** → Check for missing values; use `na.rm = TRUE` if needed
 - **Pipeline errors** → Check that each line (except the last) ends with `%>%`
 
