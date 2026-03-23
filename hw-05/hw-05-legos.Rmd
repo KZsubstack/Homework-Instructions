@@ -1,22 +1,22 @@
 ---
 title: "HW 05 - Legos"
-author: "[Your Name]"
+author: "Kaden Zhu"
 output: 
-  tufte::tufte_html:
-    css: ../lab.css
-    tufte_variant: "envisioned"
-    highlight: pygments
   tufte::tufte_handout:
     latex_engine: xelatex
     highlight: pygments
     keep_tex: true
     citation_package: natbib
+  tufte::tufte_html:
+    css: ../lab.css
+    tufte_variant: "envisioned"
+    highlight: pygments
 link-citations: true
 ---
 
 ```{r include = FALSE}
 knitr::opts_chunk$set(
-  eval = FALSE,
+  eval = TRUE,
   out.width = "80%",
   fig.asp = 0.618,
   fig.width = 10,
@@ -119,32 +119,44 @@ The `n` column shows how many times each name appears in the dataset. Your job i
 
 1. What are the three most common first names of purchasers?
 
+
 ```{marginfigure}
 *Hints: What variable contains the first names? Do you want the results sorted in ascending or descending order?*
 ```
 
 
-```{r q1, eval = FALSE}
+```{r q1, eval = TRUE}
 lego_sales %>%
-  count(_____, sort = _____) %>%
+  count(first_name, sort = TRUE) %>%
   slice(1:3)
 ```
 
 **Write your answer here:** In this sample, the three most common first names of purchasers are...
 
+The three most common first name of purchasers are Jackson, Jacob, and Joseph.
+
 2.  What are the three most common themes of Lego sets purchased?
 
-```{r q2, eval = FALSE}
+```{r q2, eval = TRUE}
 lego_sales %>%
-  count(_____, sort = _____) %>%
+  count(theme, sort = TRUE) %>%
   slice(1:3)
+
+lego_sales %>%
+filter(theme == "Star Wars") %>%
+  count(subtheme, sort = TRUE) %>%
+  slice(1)
 ```
 
 *Your output should show three rows with a theme name and count (n).*
 
-**Write your answer here:** In this sample, the three most common themes of Lego sets purchased are...
+**Write your answer here:** In this sample, the three most common themes of Lego sets purchased are... 
+
+Star Wars, Nexo Knights, and Gear.
 
 3.  Among the most common theme of Lego sets purchased, what is the most common subtheme?
+
+The Force Awakens is the most common theme of Lego sets purchased
 
  Knit, *commit, and push your changes to GitHub with an appropriate commit message. Make sure to commit and push all changed files so that your Git pane is cleared up afterwards.*
 
@@ -154,38 +166,56 @@ lego_sales %>%
 
 ```{marginfigure}
 **Hint:** Use the `case_when()` function within `mutate()`. The structure is:
-mutate(age_group = case_when(
+lego_sales <- lego_sales %>%
+  mutate(age_group = case_when(
   age <= 18 ~ "18 and under",
   age >= 19 & age <= 25 ~ "19 - 25",
-  ...
+  age >= 26 & age <= 35 ~ "26 - 35",
+  age >= 36 & age <= 50 ~ "36 - 50",
 ))
 Each condition is tested in order. The `~` separates the condition from the label.
 ```
 
-```{r q4}
-# Your code here
+```{r q4, eval = TRUE}
+lego_sales <- lego_sales %>%
+  mutate(age_group = case_when(
+    age <= 18             ~ "18 and under",
+    age >= 19 & age <= 25 ~ "19 - 25",
+    age >= 26 & age <= 35 ~ "26 - 35",
+    age >= 36 & age <= 50 ~ "36 - 50",
+    age >= 51             ~ "51 and over"
+  ))
+
+lego_sales %>%
+  select(age, age_group) %>%
+  head()
+
+lego_sales %>%
+  count(age_group)
 ```
 
 After creating the variable, verify it worked by viewing the first few rows with `select()` and `head()`, and count how many observations fall into each age group.
 
 **Write your answer here:** I created the age_group variable. The distribution shows...
+18 and under (30), 19–25 (129), 26–35 (183), 36–50 (216), and 51 and over (62)
 
-
-5.  Which age group has purchased the highest number of Lego sets.
+5.  Which age group has purchased the highest number of Lego sets. 
 
 ```{marginfigure}
 **Important:** Remember that `quantity` tells you how many sets were purchased. If someone bought quantity = 2, that counts as 2 Lego sets, not 1 purchase.
 ```
 
-```{r q5}
-# Your code here
+```{r q5, eval = TRUE}
+lego_sales %>%
+  count(age_group, sort = TRUE) %>%
+  slice(1)
 ```
 
 *Think about: What do you need to sum? What do you need to group by?*
 
 **Write your answer here:** The age group that has purchased the highest number of Lego sets is...
 
-
+age group: 36–50 with 216 
 
 6.  Which age group has spent the most money on Legos?
 
@@ -193,12 +223,18 @@ After creating the variable, verify it worked by viewing the first few rows with
 **Hint:** For each row, total spending = quantity × price. You'll need to create this calculation, then sum by age group.
 ```
 
-```{r q6}
-# Your code here
+```{r q6, eval = TRUE}
+lego_sales %>%
+  mutate(spending = quantity * us_price) %>%
+  group_by(age_group) %>%
+  summarise(total_spent = sum(spending)) %>%
+  arrange(desc(total_spent)) %>%
+  slice(1)
 ```
 
 **Write your answer here:** The age group that has spent the most money on Legos is...
 
+Age Group 36-50 with their total spent as $9532.87
 
 7.  Which Lego theme has made the most money for Lego?
 
@@ -212,11 +248,18 @@ For this question, you'll need to:
 But wait - the theme variable might have extra text after the main theme name. Use `str_sub(theme, 1, X)` to extract just the first X characters if needed. Experiment to find the right number!
 ```
 
-```{r q7}
-# Your code here
+```{r q7, eval = TRUE}
+lego_sales %>%
+  mutate(revenue = quantity * us_price) %>%
+  group_by(theme) %>%
+  summarise(total_revenue = sum(revenue)) %>%
+  arrange(desc(total_revenue)) %>%
+  slice(1)
 ```
 
 **Write your answer here:**
+
+The Star Wars theme has made the most money for Lego at $4447.83 
 
 8.  Which area code has spent the most money on Legos?
 
@@ -230,15 +273,62 @@ You'll need to:
 ```
 
 
-```{r q8}
-# Your code here
+```{r q8, eval = TRUE}
+lego_sales %>%
+  filter(!is.na(phone_number)) %>%
+  mutate(
+    area_code = str_sub(phone_number, 1, 3),
+    spending = quantity * us_price
+  ) %>%
+  group_by(area_code) %>%
+  summarise(total_spent = sum(spending)) %>%
+  arrange(desc(total_spent)) %>%
+  slice(1)
+
+lego_sales %>%
+  mutate(
+    area_code = str_sub(phone_number, 1, 3),
+    spending = quantity * us_price
+  ) %>%
+  group_by(area_code) %>%
+  summarise(total_spent = sum(spending)) %>%
+  arrange(desc(total_spent)) %>%
+  slice(1)
 ```
 
 **Write your answer here:**
 
+The Area code with the most total spent is NA at 3992.64 dollars. However, if we are only talking about available area codes it is 956 with 719.96 dollars. 
+
+
 9.  Come up with a question you want to answer using these data, and write it down. Then, create a data visualization that answers the question, and explain how your visualization answers the question.
 
 Be sure to include your reaearch quesiton, the variables you'll need to use to answer the question, the type of plot that will answer the question along with the code, and 2-3 sentences interpreting your results. 
+
+My research question is: Does average spending on the  transaction level differ across different age groups?
+
+we would need three variables to answer this: age_group, quantity, us_price
+
+The plot to use is bar chart because its code for comparing a numeric value across different categories
+
+The 36–50 age group spends the most per transaction on average, while the 18 and under group spends the least. This is interesting because although the 36–50 group also leads in total purchases, the average transaction result suggests that older customers tend to select more expensive or larger Lego sets per purchase not just that they buy more frequently.
+
+```{r q9, eval = TRUE}
+lego_sales %>%
+  mutate(spending = quantity * us_price) %>%
+  group_by(age_group) %>%
+  summarise(avg_spending = mean(spending)) %>%
+  ggplot(aes(x = age_group, y = avg_spending, fill = age_group)) +
+  geom_col() +
+  labs(
+    title = "Average Lego Spending per Transaction by Age Group",
+    x = "Age Group",
+    y = "Average Spending (USD)",
+    fill = "Age Group"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
 
 Knit, *commit, and push your changes to GitHub with an appropriate commit message. Make sure to commit and push all changed files so that your Git pane is cleared up afterwards and review the md document on GitHub to make sure you're happy with the final state of your work.*
 
