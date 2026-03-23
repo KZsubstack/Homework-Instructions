@@ -187,10 +187,12 @@ This is telling us that we might want to reconsider the binwidth we chose for ou
 3.  Try binwidths of \$1000 and \$5000 and choose one. Explain your reasoning for your choice. Note that the binwidth is an argument for the `geom_histogram` function. So to specify a binwidth of \$1000, you would use `geom_histogram(binwidth = 1000)`.
 
 ```{r binwidth-1000, eval = TRUE}
-# Try binwidth = 1000
+ggplot(data = college_recent_grads, mapping = aes(x = median)) +
+  geom_histogram(binwidth = 1000)
 ```
-```{r binwidth-5000}
-# Try binwidth = 5000
+```{r binwidth-5000, eval = TRUE}
+ggplot(data = college_recent_grads, mapping = aes(x = median)) +
+  geom_histogram(binwidth = 5000)
 ```
 
 We can also calculate summary statistics for this distribution using the `summarise` function:
@@ -231,7 +233,7 @@ Fill-in the blanks in the code below and change eval = TRUE to test your output.
 college_recent_grads %>%
   group_by(major_category) %>%
   summarise(typical_median_income = median(median)) %>%
-  arrange(typical_median_income)
+  arrange(desc(typical_median_income))
 ```
 
 7.  Which major category is the least popular in this sample? To answer this question we use a new function called `count`, which first groups the data and then counts the number of observations in each category (see below). Add to the pipeline appropriately to arrange the results so that the major with the lowest observations is on top.
@@ -295,7 +297,7 @@ college_recent_grads %>%
 
 **Hint:** Use `filter()` with two conditions, then `select()` the relevant variables, then `arrange()` appropriately.
 
-```{r stem-below-median, eval=FALSE}
+```{r stem-below-median, eval=TRUE}
 college_recent_grads %>%
   filter(
     major_type == "stem",
@@ -312,15 +314,18 @@ college_recent_grads %>%
 9.  Create a scatterplot of median income vs. proportion of women in that major, coloured by whether the major is in a STEM field or not. Describe the association between these three variables.
 
 ```{r women-income-stem, eval = TRUE}
-ggplot(data = college_recent_grads, aes(x = median, y = sharewomen, color = major_type)) +
+ggplot(data = college_recent_grads, aes(x = sharewomen, y = median, color = major_type)) +
   geom_point() +
   labs(
-    x = "median income",
-    y = "proportion of women",
-    color = "in Stem or not",
-    title = "median income vs. proportion of women in major"
+    x = "Proportion of Women",
+    y = "Median Income",
+    color = "Major Type",
+    title = "Median Income vs. Proportion of Women by Major Type"
   )
 ```
+Exercise 9 written interpretation:
+
+There is a negative association between proportion of women and median income, meaning majors with more women tend to have lower median earnings. STEM majors cluster toward lower proportions of women and higher median incomes, while non-STEM majors tend to have higher proportions of women and lower median incomes. This suggests that the gender gap in earnings may be partly explained by the types of majors women choose rather than earnings differences within the same major.
 
 ## Further exploration
 
