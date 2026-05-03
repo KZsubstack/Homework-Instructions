@@ -1,16 +1,16 @@
 ---
 title: "HW 07 - Bike rentals in DC"
-author: "[Your Name]"
+author: "Kaden Zhu"
 output: 
-  tufte::tufte_html:
-    css: ../hw.css
-    tufte_variant: "envisioned"
-    highlight: pygments
   tufte::tufte_handout:
     latex_engine: xelatex
     highlight: pygments
     keep_tex: true
     citation_package: natbib
+  tufte::tufte_html:
+    css: ../hw.css
+    tufte_variant: "envisioned"
+    highlight: pygments
 link-citations: true
 ---
 
@@ -97,19 +97,70 @@ The data include daily bike rental counts (by members and casual users) of Capit
 
 1.  Recode the `season` variable to be a factor with meaningful level names as outlined in the codebook, with spring as the baseline level.
 
+```{r recode-season}
+dcbikeshare <- dcbikeshare %>%
+  mutate(season = factor(
+    season,
+    levels = c(1, 2, 3, 4),
+    labels = c("spring", "summer", "fall", "winter")
+  ))
+levels(dcbikeshare$season)
+```
+
 2.  Recode the binary variables `holiday` and `workingday` to be factors with levels no (0) and yes (1), with no as the baseline level.
+
+```{r recode-binary}
+dcbikeshare <- dcbikeshare %>%
+  mutate(
+    holiday = factor(holiday, levels = c(0, 1), labels = c("no", "yes")),
+    workingday = factor(workingday, levels = c(0, 1), labels = c("no", "yes"))
+  )
+```
 
 3.  Recode the `yr` variable to be a factor with levels 2011 and 2012, with 2011 as the baseline level.
 
+
+```{r recode-yr}
+dcbikeshare <- dcbikeshare %>%
+  mutate(yr = factor(yr, levels = c(0, 1), labels = c("2011", "2012")))
+```
+
 4.  Recode the `weathersit` variable as 1 - clear, 2 - mist, 3 - light precipitation, and 4 - heavy precipitation, with clear as the baseline.
+
+```{r recode-weathersit}
+dcbikeshare <- dcbikeshare %>%
+  mutate(weathersit = factor(
+    weathersit,
+    levels = c(1, 2, 3, 4),
+    labels = c("clear", "mist", "light precipitation", "heavy precipitation")
+  ))
+```
 
 5.  Calculate raw temperature, feeling temperature, humidity, and windspeed as their values given in the dataset multiplied by the maximum raw values stated in the codebook for each variable. Instead of writing over the existing variables, create new ones with concise but informative names.
 
+```{r raw-vars}
+dcbikeshare <- dcbikeshare %>%
+  mutate(
+    temp_raw = temp * 41,
+    atemp_raw = atemp * 50,
+    hum_raw = hum * 100,
+    windspeed_raw = windspeed * 67
+  )
+```
+
 6.  Check that the sum of `casual` and `registered` adds up to `cnt` for each record. This is a data validation step to ensure the dataset is internally consistent.
+
+```{r validate-counts}
+dcbikeshare <- dcbikeshare %>%
+  mutate(count_check = (casual + registered) == cnt)
+all(dcbikeshare$count_check)
+```
 
 One way to do this is to create a new logical variable that checks if `casual + registered == cnt` for each row, then verify that all values are `TRUE`.
 
 **Write your answer:** Do the casual and registered counts sum to the total count for all records? (Yes/No)
+
+Yes. `all()` returns `TRUE`, so casual plus registered equals cnt for every row in the dataset.
 
 **Checkpoint:** Before moving on to exploratory data analysis and modeling, verify your data wrangling:
 
@@ -143,14 +194,44 @@ dcbikeshare %>%
 ```
 
   a. What does this visualization reveal about the relationship   between temperature and bike rentals over time?
+  
+Bike rentals follow pretty observable seasonal cycle, that peaks in the warmer months and dropping in the colder months, and the color gradient reinforces this with the warm temperature days which are lighter blue siting near the top of the cloud and cold days the darker blue sit near the bottom. The whole 2012 cloud also shifts upward from 2011, so beyond temperature there is steady year over year growth in the system.
+
 
   b. Modify the code to color the points by humidity instead of temperature. What new pattern (if any) emerges?
   
-```{r bike-humidity-viz}
-# Your modified code here
+The humidity coloring is much noisier than the temperature coloring. The seasonal arch and the year over year jump are still there because they come from the date and ridership, and not the color. The faint pattern in the color is that the lowest ridership days are often high humidity days, while the very highest ridership days lean drier, but the relationship is weak compared with temperature.
+
+  
+```{r bike-humidity-viz, fig.fullwidth = TRUE}
+dcbikeshare %>%
+  ggplot(mapping = aes(x = dteday, y = cnt, color = hum_raw)) +
+  geom_point(alpha = 0.7) +
+  labs(
+    title = "Bike rentals in DC, 2011 and 2012",
+    subtitle = "Colored by humidity",
+    x = "Date",
+    y = "Bike rentals",
+    color = "Humidity (%)"
+  ) +
+  theme_minimal()
 ```
 
 8.  Create a visualization displaying the relationship between bike rentals and season. Interpret the plot in context of the data.
+
+Fall has highest median daily rentals, with summer pretty close behind but with winter slightly above summer's lower whisker. Spring is the lowest by a wide margin and also has the most variability on the low end. The pattern matches DC weather where spring in this dataset starts in late December, so it includes the coldest, and wettest months, while fall covers September through November when temperatures are much more mild and the weather is good for riding.
+
+
+```{r rentals-by-season}
+ggplot(dcbikeshare, aes(x = season, y = cnt, fill = season)) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(
+    title = "Daily bike rentals by season",
+    x = "Season",
+    y = "Total daily rentals"
+  ) +
+  theme_minimal()
+```
 
 Knit, *commit, and push your changes to GitHub with an appropriate commit message. Make sure to commit and push all changed files so that your Git pane is cleared up afterwards.*
 
@@ -158,17 +239,106 @@ Knit, *commit, and push your changes to GitHub with an appropriate commit messag
 
 9.  Fit a linear model predicting total daily bike rentals from daily temperature. Write the linear model, interpret the slope and the intercept in context of the data, and determine and interpret the $R^2$.
 
+
+$$\widehat{cnt} = 1214.6 + 161.97 \times temp\_raw$$
+Intercept: When the raw temperature is 0 °C, the model predicts about 1,215 rentals per day. This is at the low end of the observed temperature range, so the prediction is borderline meaningful rather than a wild extrapolation, but no day is literally at exactly 0 °C.
+Slope: Each one-degree-Celsius increase in temperature is associated with about 162 additional rentals per day, on average.
+R^2: About 0.394. Roughly 39% of the day-to-day variation in total rentals is explained by temperature alone, which is a moderate fit for a single predictor.
+
+```{r model-temp}
+m_temp <- lm(cnt ~ temp_raw, data = dcbikeshare)
+summary(m_temp)
+```
+
 10. Fit another linear model predicting total daily bike rentals from daily feeling temperature. Write the linear model, interpret the slope and the intercept in context of the data, and determine and interpret the $R^2$. Is temperature or feeling temperature a better predictor of bike rentals? Explain your reasoning.
+
+$$\widehat{cnt} = 945.6 + 137.0 \times atemp\_raw$$
+
+Intercept: When the feeling temperature is 0 °C, the model predicts about 946 rentals per day.
+Slope: Each one-degree-Celsius increase in feeling temperature is associated with about 137 more rentals per day, on average. The slope is smaller than for raw temperature because feeling temperature is scaled to a wider max (50 vs. 41), so a one-degree change covers a slightly smaller share of the observed range.
+R^2: About 0.398. Feeling temperature explains a hair more of the variability in rentals than raw temperature does. The two are essentially tied, with feeling temperature very slightly better. That makes intuitive sense: people decide whether to ride based on how warm it feels, which folds in humidity and wind.
+
+```{r model-atemp}
+m_atemp <- lm(cnt ~ atemp_raw, data = dcbikeshare)
+summary(m_atemp)
+```
 
 11. Fit a model predicting total daily bike rentals from season, year, whether the day is holiday or not, whether the day is a workingday or not, the weather category, temperature, feeling temperature, humidity, and windspeed, as well as the interaction between feeling temperature and holiday. Record adjusted $R^2$ of the model.
 
+Adjusted R^2: approximately 0.83. The full model with the interaction explains about 83% of the variability in total daily rentals which is a very large jump compared to the single predictor models in Exercises 9 and 10.
+
+```{r model-full}
+m_full <- lm(
+  cnt ~ season + yr + holiday + workingday + weathersit +
+        temp_raw + atemp_raw + hum_raw + windspeed_raw +
+        atemp_raw * holiday,
+  data = dcbikeshare
+)
+summary(m_full)
+```
+
 12. Your model in Question 11 includes an interaction between feeling temperature and holiday. Write out the linear model equation for holidays and the linear model equation for non-holidays separately (substitute the appropriate values for the holiday variable). Is the slope of temperature the same or different for these two models? How about the slope for feeling temperature? Explain why based on the interaction term.
+
+The fitted model has the form
+$$
+\begin{aligned}
+\widehat{cnt} =\ & b_0 + b_1\,season \\
+                 & + b_2\,yr \\
+                 & + b_3\,hol \\
+                 & + b_4\,work \\
+                 & + b_5\,weather \\
+                 & + b_6\,temp \\
+                 & + b_7\,atemp \\
+                 & + b_8\,hum \\
+                 & + b_9\,wind \\
+                 & + b_{10}\,(atemp \times hol)
+\end{aligned}
+$$
+For non-holidays (`hol = 0`), the interaction drops out:
+$$
+\begin{aligned}
+\widehat{cnt} =\ & b_0 + b_1\,season \\
+                 & + b_2\,yr + b_4\,work \\
+                 & + b_5\,weather \\
+                 & + b_6\,temp + b_7\,atemp \\
+                 & + b_8\,hum + b_9\,wind
+\end{aligned}
+$$
+The slope on `atemp` is just $b_7$.
+For holidays (`hol = 1`), the holiday main effect and interaction both fire:
+$$
+\begin{aligned}
+\widehat{cnt} =\ & (b_0 + b_3) + b_1\,season \\
+                 & + b_2\,yr + b_4\,work \\
+                 & + b_5\,weather \\
+                 & + b_6\,temp \\
+                 & + (b_7 + b_{10})\,atemp \\
+                 & + b_8\,hum + b_9\,wind
+\end{aligned}
+$$
+The slope on `atemp` is now $b_7 + b_{10}$.
+So the slope for raw temperature (`temp_raw`) is the same on holidays and non-holidays `temp_raw` does not appear in any interaction. The slope for feeling temperature (`atemp_raw`) is different because the `atemp_raw:holidayyes` term shifts that slope by $b_{10}$ on holidays. That is exactly what the interaction term lets the model do: allow the temperature-vs-rentals relationship to differ between holidays and non-holidays.
 
 13. Interpret the slopes of season and feeling temperature in the context of bike rentals. If the slopes are different for holidays and non-holidays, make sure to interpret both. If the variable has multiple levels, make sure you interpret all of the slope coefficients associated with it.
 
+season with baseline = spring
+seasonsummer: on days with the same year, weather, temperature, humidity, wind, and holiday/workingday status, summer days have, on average, about 940 more rentals per day than spring days.
+seasonfall: same conditions fall days have about 990 more rentals than spring days.
+seasonwinte: same conditions winter days have about 490 more rentals than spring days.
+
+spring is the lowest baseline, and the other three seasons all sit above it even after controlling for temperature, because seasonality picks up things temperature alone misses like tourists and true daylight and other factors 
+
+Feeling temperature (`atemp_raw`) is the slope depends on holiday status because of the interaction with Non holidays each additional degree Celsius of feeling temperature is associated with about 105 more rentals per day, holding everything else constant. AndHolidays each additional degree Celsius of feeling temperature is associated with roughly 130 more rentals per day. On holidays the temperature response is steeper warm holidays draw out a lot of recreational riders that a warm workday does not.
+
+
 14. Interpret the intercept in the context of bike rentals. If the intercept is different for holidays and non-holidays, make sure to interpret both.
 
+The intercept is the predicted total daily rentals when every numeric predictor is 0 and every categorical predictor is at its baseline level spring, year 2011, non-working day, clear weather, 0 °C raw temperature, 0 °C feeling temperature, 0% humidity, 0 windspeed. Non-holidays intercept ≈ −650. The model predicts about −650 rentals on a non-holiday spring 2011 day with clear weather and all weather variables at zero. A negative count is not physically meaningful and this combination of conditions doesn't occur in the data, so the intercept is just an anchor for the regression plane, not a real prediction. Holidays add the `holidayyes` coefficient +1900 to get an intercept of roughly +1250 for the same baseline conditions on a holiday. The shift is large because holidays are rare in the data, so the holiday-specific intercept is fit from a small subset.
+
 15. According to this model, assuming everything else is the same, in which season does the model predict total daily bike rentals to be highest and which to be the lowest?
+
+Holding everything else constant, the model predicts the highest total daily rentals in fall which is largest positive coefficient among the season dummies and the lowest in spring the baseline, with no positive bump. Summer is just behind fall, and winter is well above spring but well below summer and fall.
+
 
 Knit, *commit, and push your changes to GitHub with an appropriate commit message. Make sure to commit and push all changed files so that your Git pane is cleared up afterwards and review the md document on GitHub to make sure you're happy with the final state of your work.*
 
