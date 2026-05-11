@@ -1,16 +1,16 @@
 ---
 title: "HW 08 - Exploring the GSS"
-author: "[Your Name]"
+author: "Kaden Zhu"
 output: 
-  tufte::tufte_html:
-    css: ../lab.css
-    tufte_variant: "envisioned"
-    highlight: pygments
   tufte::tufte_handout:
     latex_engine: xelatex
     highlight: pygments
     keep_tex: true
     citation_package: natbib
+  tufte::tufte_html:
+    css: ../lab.css
+    tufte_variant: "envisioned"
+    highlight: pygments
 link-citations: true
 ---
 
@@ -119,8 +119,24 @@ Answers to this question are stored in the `harass5` variable in our dataset.
 
 1.  What are the possible responses to this question and how many respondents chose each of these answers?
 
+```{r q1, eval=TRUE}
+gss16 %>%
+  count(harass5)
+```
+
+The possible responses are Yes, No, Does not apply, and NA. Counts: Yes = 265, No = 1136, Does not apply = 241, NA = 1225.
+
 2.  What percent of the respondents for whom this question is applicable\
     (i.e. excluding `NA`s and `Does not apply`s) have been harassed by their superiors or co-workers at their job.
+
+```{r q2, eval=TRUE}
+gss16 %>%
+  filter(!is.na(harass5), harass5 != "Does not apply") %>%
+  count(harass5) %>%
+  mutate(percentage = n / sum(n) * 100)
+```
+
+About 18.92% of applicable respondents reported being harassed at work.
 
 **Checkpoint:** Before moving on, verify your work:
 
@@ -136,7 +152,26 @@ The 2016 GSS also asked respondents how many hours and minutes they spend on ema
 
 3.  Create a new variable called `email` that combines these two variables to reports the number of minutes the respondents spend on email weekly.
 
+```{r q3, eval=TRUE}
+gss16 <- gss16 %>%
+  mutate(email = emailhr * 60 + emailmin)
+```
+
 4.  Visualize the distribution of this new variable. Find the mean and the median number of minutes respondents spend on email weekly. Is the mean or the median a better measure of the typical among of time Americans spend on email weekly? Why?
+
+```{r q4, eval=TRUE}
+ggplot(gss16, aes(x = email)) +
+  geom_histogram(binwidth = 60) +
+  labs(x = "Email minutes per week", y = "Count")
+
+gss16 %>%
+  summarise(
+    mean_email = mean(email, na.rm = TRUE),
+    median_email = median(email, na.rm = TRUE)
+  )
+```
+
+The distribution of weekly email minutes is heavily right-skewed. Mean is about 417 minutes, median is about 120 minutes. The median is the better measure of the typical amount because it resists the pull of extreme high values, while the mean gets dragged upward by a small number of heavy users.
 
 5.  Create another new variable, `snap_insta` that is coded as "Yes" if the respondent reported using any of Snapchat (`snapchat`) or Instagram (`instagrm`), and "No" if not. If the recorded value was `NA` for both of these questions, the value in your new variable should also be `NA`.
 
@@ -150,17 +185,64 @@ The 2016 GSS also asked respondents how many hours and minutes they spend on ema
 
 **Hint:** Use `case_when()` to handle these conditions. You'll need to check for the NA condition first.
 
-```{r snap-insta}
-# Your code here
+```{r snap-insta, eval=TRUE}
+gss16 <- gss16 %>%
+  mutate(snap_insta = case_when(
+    is.na(snapchat) & is.na(instagrm) ~ NA_character_,
+    snapchat == "Yes" | instagrm == "Yes" ~ "Yes",
+    snapchat == "No" & instagrm == "No" ~ "No"
+  ))
 ```
 
 6.  Calculate the percentage of Yes's for `snap_insta` among those who answered the question, i.e. excluding `NA`s.
 
+```{r q6, eval=TRUE}
+gss16 %>%
+  filter(!is.na(snap_insta)) %>%
+  count(snap_insta) %>%
+  mutate(percentage = n / sum(n) * 100)
+```
+
+About 31.8% of respondents who answered reported using Snapchat or Instagram.
+
 7.  What are the possible responses to the question *Last week were you working full time, part time, going to school, keeping house, or what?* and how many respondents chose each of these answers? Note that this information is stored in the `wrkstat` variable.
+
+```{r q7, eval=TRUE}
+gss16 %>%
+  count(wrkstat)
+```
+
+Possible responses include Working fulltime, Working parttime, Temp not working, Unempl, laid off, Retired, School, Keeping house, and Other, plus NA. Working fulltime has the largest count.
 
 8.  Fit a model predicting `email` (number of minutes per week spent on email) from `educ` (number of years of education), `wrkstat`, and `snap_insta`. Interpret the slopes for each of these variables.
 
+```{r q8, eval=TRUE}
+library(tidymodels)
+email_fit <- linear_reg() %>%
+  set_engine("lm") %>%
+  fit(email ~ educ + wrkstat + snap_insta, data = gss16)
+tidy(email_fit)
+glance(email_fit)
+```
+
+Slope interpretations, holding other predictors constant:
+
+- educ: each additional year of education is associated with a higher predicted weekly email time of about 27 minutes on average.
+- wrkstat: each level is compared to the baseline (Working fulltime). Categories like Retired, Keeping house, and School predict fewer weekly email minutes than full time workers. Working parttime also predicts fewer minutes than full time.
+- snap_insta: respondents who use Snapchat or Instagram predict more weekly email minutes than non users, by roughly 60 to 90 minutes on average.
+
 9.  Create a predicted values vs. residuals plot for this model. Are there any issues with the model? If yes, describe them.
+
+```{r q9, eval=TRUE}
+library(broom)
+email_aug <- augment(email_fit$fit)
+ggplot(email_aug, aes(x = .fitted, y = .resid)) +
+  geom_point(alpha = 0.4) +
+  geom_hline(yintercept = 0, color = "red") +
+  labs(x = "Fitted values", y = "Residuals")
+```
+
+The residual plot shows clear issues. Residuals fan out as fitted values grow, which violates the constant variance assumption. Residuals also skew strongly positive with a long upper tail, showing the normality assumption fails. A linear model on raw email minutes does not fit this skewed response well; a log transformation of email would help.
 
 Knit, *commit, and push your changes to GitHub with an appropriate commit message. Make sure to commit and push all changed files so that your Git pane is cleared up afterwards.*
 
@@ -198,8 +280,16 @@ And possible responses to this question are Extremely liberal, Liberal, Slightly
 
 **Hint:** Use `case_when()` and check the exact spelling of levels by running `count(gss16, advfront)` first.
 
-```{r recode-advfront}
-# Your code here
+```{r recode-advfront, eval=TRUE}
+gss16 <- gss16 %>%
+  mutate(advfront_yn = case_when(
+    advfront %in% c("Strongly agree", "Agree") ~ "Yes",
+    advfront %in% c("Disagree", "Strongly disagree") ~ "No",
+    TRUE ~ advfront
+  ))
+
+gss16 %>%
+  count(advfront_yn)
 ```
 
 11. In a new variable, recode `polviews` such that Extremely liberal, Liberal, and Slightly liberal, are mapped to `"Liberal"`, and Slghtly conservative, Conservative, and Extrmly conservative disagree are mapped to `"Conservative"`. The remaining levels can be left as is. Make sure that the levels are in a reasonable order. Don't overwrite the existing `polviews`, instead pick a different, informative name for your new variable.
@@ -208,11 +298,36 @@ And possible responses to this question are Extremely liberal, Liberal, Slightly
 
 **Hint:** After recoding, convert to a factor with levels in order: "Liberal", "Moderate", "Conservative"
 
-```{r recode-polviews}
-# Your code here
+```{r recode-polviews, eval=TRUE}
+gss16 <- gss16 %>%
+  mutate(polviews_group = case_when(
+    polviews %in% c("Extremely liberal", "Liberal", "Slightly liberal") ~ "Liberal",
+    polviews %in% c("Slghtly conservative", "Conservative", "Extrmly conservative") ~ "Conservative",
+    polviews == "Moderate" ~ "Moderate",
+    TRUE ~ NA_character_
+  )) %>%
+  mutate(polviews_group = factor(polviews_group, levels = c("Liberal", "Moderate", "Conservative")))
+
+gss16 %>%
+  count(polviews_group)
 ```
 
 12. Create a visualization that displays the relationship between these two new variables and interpret it.
+
+```{r q12, eval=TRUE}
+gss16 %>%
+  filter(!is.na(polviews_group), !is.na(advfront_yn)) %>%
+  ggplot(aes(x = polviews_group, fill = advfront_yn)) +
+  geom_bar(position = "fill") +
+  labs(
+    x = "Political views",
+    y = "Proportion",
+    fill = "Supports science research",
+    title = "Support for federal science research funding by political view"
+  )
+```
+
+Across all three political groups, most respondents support federal funding for science research. Liberals show the highest share of Yes responses, Moderates fall in the middle, and Conservatives show the lowest share of Yes. Support drops as political views move from Liberal to Conservative, but a majority in every group still answers Yes.
 
 Knit, *commit, and push your changes to GitHub with an appropriate commit message. Make sure to commit and push all changed files so that your Git pane is cleared up afterwards and review the md document on GitHub to make sure you're happy with the final state of your work.*
 
